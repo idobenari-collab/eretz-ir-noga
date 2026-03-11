@@ -517,6 +517,43 @@ function renderSpinScreen(app) {
     </div>`;
 }
 
+function startSpin() {
+  if (G.spinning) {
+    // עצור את הספין ובחר את האות הנוכחית
+    clearInterval(G.spinInterval);
+    clearInterval(G.spinCountdownInterval);
+    G.spinning = false;
+    G.letter = G.spinCurrentLetter;
+    const drum = document.getElementById('spinDrum');
+    const reveal = document.getElementById('letterReveal');
+    const btn = document.getElementById('spinBtn');
+    const countdown = document.getElementById('spinCountdown');
+    if (drum) { drum.textContent = G.letter; drum.style.background = 'linear-gradient(135deg,var(--coral),var(--orange))'; drum.style.color = '#fff'; }
+    if (reveal) { reveal.style.display = 'block'; reveal.textContent = 'האות היא: ' + G.letter + '!'; }
+    if (countdown) countdown.textContent = '';
+    if (btn) { btn.textContent = 'בואי נתחיל לענות! ✍️'; btn.onclick = function(){ G.screen='play'; G.round++; render(); }; }
+  } else {
+    // התחל ספין
+    G.spinning = true;
+    G.spinCountdown = 10;
+    const btn = document.getElementById('spinBtn');
+    const countdown = document.getElementById('spinCountdown');
+    if (btn) btn.textContent = '⏹ עצור!';
+    // סיבוב מהיר של אותיות
+    G.spinInterval = setInterval(function() {
+      G.spinCurrentLetter = HEBREW_LETTERS[Math.floor(Math.random() * HEBREW_LETTERS.length)];
+      const drum = document.getElementById('spinDrum');
+      if (drum) { drum.textContent = G.spinCurrentLetter; drum.style.background = 'linear-gradient(135deg,var(--purple),var(--coral))'; drum.style.color = '#fff'; }
+    }, 80);
+    // ספירה לאחור של 10 שניות
+    G.spinCountdownInterval = setInterval(function() {
+      G.spinCountdown--;
+      if (countdown) countdown.textContent = 'עוצר בעוד ' + G.spinCountdown + ' שניות...';
+      if (G.spinCountdown <= 0) { startSpin(); } // עצור אוטומטית
+    }, 1000);
+  }
+}
+
 function showEnd() { G.screen='end'; render(); }
 
 function resetGame() {
