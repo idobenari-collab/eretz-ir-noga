@@ -432,7 +432,7 @@ function render() {
   } else if (G.screen === 'spin') {
     G.round++;
     G.spinning = false;
-    G.spinCurrentLetter = LETTERS[Math.floor(Math.random()*LETTERS.length)];
+    G.spinCurrentLetter = HEBREW_LETTERS[Math.floor(Math.random()*HEBREW_LETTERS.length)];
     G.screen = 'spinning';
     renderSpinScreen(app);
 
