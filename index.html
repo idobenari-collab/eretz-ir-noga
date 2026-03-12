@@ -262,7 +262,7 @@ const DB = {
   },
   famousM: {
     'א':['אייל גולן','אברהם טל','אריאל זילבר','אסי עזר','אדם לוין','אריק איינשטיין','אהוד בנאי','אהוד מנור','אדם סנדלר','אל פצ׳ינו','אנתוני הופקינס','אברהם לינקולן'],
-    'ב':['ברד פיט','בני גנץ','בוב מארלי','בן אפלק','בנימין נתניהו','ביבי נתניהו','ברוס ויליס','ברק אובמה','ביל גייטס','ביל קלינטון'],
+    'ב':['ברד פיט','בני גנץ','בוב מארלי','בן אפלק','בנימין נתניהו','ברוס ויליס','ברק אובמה','ביל גייטס'],
     'ג':['ג׳סטין ביבר','ג׳ורג׳ קלוני','גדי גולדשמידט'],
     'ד':['דני סנדרסון','דוד ד׳אור','דן שילון','לאונרדו דה קפריו','דוויין ג׳ונסון'],
     'ה':['הארי סטיילס'],
@@ -286,7 +286,7 @@ const DB = {
   },
   famousF: {
     'א':['אריאנה גרנדה','אנג׳לינה ג׳ולי','אופרה וינפרי','אדל','אנה פרנק','אנג׳לה מרקל','אמה ווטסון','אסתר המלכה','אמילי דיקינסון'],
-    'ב':['ביוונסה','ברית ספירס','ברברה סטרייסנד','בילי איליש'],
+    'ב':['ביוונסה','ברית ספירס','ברברה סטרייסנד'],
     'ג':['גל גדות','גרטה תונברג'],
     'ד':['דיאנה','דמי מור','דואה ליפה'],
     'ה':['הלי ברי','הילרי קלינטון'],
@@ -360,7 +360,7 @@ function checkAnswer(letter, category, answer) {
   // Exact match
   if (normPool.includes(n)) return { ok:true, reason:'נכון!' };
 
-  // Fuzzy match on full answer
+  // Fuzzy match
   const maxDist = n.length >= 7 ? 3 : n.length >= 4 ? 2 : 1;
   for (let i=0; i<normPool.length; i++) {
     if (levenshtein(n, normPool[i]) <= maxDist) {
@@ -368,19 +368,16 @@ function checkAnswer(letter, category, answer) {
     }
   }
 
-  // Partial match — first name only (e.g. "ביבי" matches "ביבי נתניהו")
+  // Partial/first-name match
   const answerWords = n.split(' ');
   for (let i=0; i<normPool.length; i++) {
     const dbWords = normPool[i].split(' ');
-    if (answerWords.length === 1 && levenshtein(answerWords[0], dbWords[0]) <= 1) {
-      return { ok:true, reason:'נכון! (התכוונת ל' + pool[i] + '?)' };
-    }
-    if (answerWords.length >= 1 && dbWords.length >= 1) {
-      const firstMatch = levenshtein(answerWords[0], dbWords[0]) <= (answerWords[0].length >= 4 ? 2 : 1);
-      if (firstMatch) {
-        if (answerWords.length === 1) return { ok:true, reason:'נכון! (התכוונת ל' + pool[i] + '?)' };
-        const lastMatch = levenshtein(answerWords[answerWords.length-1], dbWords[dbWords.length-1]) <= 2;
-        if (lastMatch) return { ok:true, reason:'נכון! (התכוונת ל' + pool[i] + '?)' };
+    const firstDist = levenshtein(answerWords[0], dbWords[0]);
+    const firstMax = answerWords[0].length >= 4 ? 2 : 1;
+    if (firstDist <= firstMax) {
+      if (answerWords.length === 1) return { ok:true, reason:'נכון! (התכוונת ל' + pool[i] + '?)' };
+      if (dbWords.length > 1 && levenshtein(answerWords[answerWords.length-1], dbWords[dbWords.length-1]) <= 2) {
+        return { ok:true, reason:'נכון! (התכוונת ל' + pool[i] + '?)' };
       }
     }
   }
@@ -432,7 +429,7 @@ function render() {
   } else if (G.screen === 'spin') {
     G.round++;
     G.spinning = false;
-    G.spinCurrentLetter = LETTERS[Math.floor(Math.random()*LETTERS.length)];
+    G.spinCurrentLetter = HEBREW_LETTERS[Math.floor(Math.random()*HEBREW_LETTERS.length)];
     G.screen = 'spinning';
     renderSpinScreen(app);
 
@@ -462,7 +459,6 @@ function render() {
         <button class="btn btn-primary" onclick="submitAnswers()">סיימתי! ✋</button>
       </div>`;
     setTimeout(()=>{ const f=document.getElementById('inp-'+CATEGORIES[0].key); if(f)f.focus(); },100);
-    // טיימר 60 שניות
     G.timeLeft = 60;
     clearInterval(G.timerInterval);
     G.timerInterval = setInterval(function() {
@@ -544,6 +540,39 @@ function renderSpinScreen(app) {
     </div>`;
 }
 
+function startSpin() {
+  if (G.spinning) {
+    clearInterval(G.spinInterval);
+    clearInterval(G.spinCountdownInterval);
+    G.spinning = false;
+    G.letter = G.spinCurrentLetter;
+    const drum = document.getElementById('spinDrum');
+    const reveal = document.getElementById('letterReveal');
+    const btn = document.getElementById('spinBtn');
+    const countdown = document.getElementById('spinCountdown');
+    if (drum) { drum.textContent = G.letter; drum.style.background = 'linear-gradient(135deg,var(--coral),var(--orange))'; drum.style.color = '#fff'; }
+    if (reveal) { reveal.style.display = 'block'; reveal.textContent = 'האות היא: ' + G.letter + '!'; }
+    if (countdown) countdown.textContent = '';
+    if (btn) { btn.textContent = 'בואי נתחיל לענות! ✍️'; btn.onclick = function(){ G.screen='play'; G.round++; render(); }; }
+  } else {
+    G.spinning = true;
+    G.spinCountdown = 10;
+    const btn = document.getElementById('spinBtn');
+    const countdown = document.getElementById('spinCountdown');
+    if (btn) btn.textContent = '⏹ עצור!';
+    G.spinInterval = setInterval(function() {
+      G.spinCurrentLetter = HEBREW_LETTERS[Math.floor(Math.random() * HEBREW_LETTERS.length)];
+      const drum = document.getElementById('spinDrum');
+      if (drum) { drum.textContent = G.spinCurrentLetter; drum.style.background = 'linear-gradient(135deg,var(--purple),var(--coral))'; drum.style.color = '#fff'; }
+    }, 80);
+    G.spinCountdownInterval = setInterval(function() {
+      G.spinCountdown--;
+      if (countdown) countdown.textContent = 'עוצר בעוד ' + G.spinCountdown + ' שניות...';
+      if (G.spinCountdown <= 0) { startSpin(); }
+    }, 1000);
+  }
+}
+
 function showEnd() { G.screen='end'; render(); }
 
 function resetGame() {
@@ -567,6 +596,7 @@ for (let i=0;i<18;i++) {
   bgEl.appendChild(s);
 }
 
+let G = { screen:'start', round:0, totalRounds:5, letter:'', answers:{}, score:0, roundResults:[], timeLeft:60, timerInterval:null, spinning:false, spinInterval:null, spinCountdown:10, spinCountdownInterval:null, spinCurrentLetter:'א' };
 let G = { screen:'start', round:0, totalRounds:5, letter:'', answers:{}, score:0, roundResults:[], timeLeft:60, timerInterval:null, spinning:false, spinInterval:null, spinCountdown:10, spinCountdownInterval:null, spinCurrentLetter:'א' };
 render();
 </script>
